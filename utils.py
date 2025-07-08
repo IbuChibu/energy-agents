@@ -60,3 +60,39 @@ def compute_solar_weekly_stats(df):
         "avg_solar_w": df["solar_w"].mean(),
     }
     return stats
+
+def summarize_biogas_bursts(df, flow_col="flow", threshold=0.1, min_gap_minutes=5):
+    df = df.copy()
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    df = df.sort_values("timestamp")
+    df[flow_col] = pd.to_numeric(df[flow_col], errors="coerce")
+
+    bursts = []
+    current_burst = []
+
+    for _, row in df.iterrows():
+        if row[flow_col] > threshold:
+            current_burst.append(row)
+        else:
+            if current_burst:
+                bursts.append(current_burst)
+                current_burst = []
+    if current_burst:
+        bursts.append(current_burst)
+
+    burst_durations = [len(b) for b in bursts]
+    burst_volumes = [sum(r[flow_col] for r in burst) for burst in bursts]
+    max_flow = max((r[flow_col] for burst in bursts for r in burst), default=0)
+
+    recent_bursts_str = "\n".join(
+        f"- {burst[0]['timestamp']} | duration: {len(burst)} rows | total volume: {sum(r[flow_col] for r in burst):.2f} L"
+        for burst in bursts[-5:]
+    )
+
+    return {
+        "n_bursts": len(bursts),
+        "avg_burst_duration": sum(burst_durations) / len(burst_durations) if burst_durations else 0,
+        "total_volume": sum(burst_volumes),
+        "max_flow": max_flow,
+        "recent_bursts": recent_bursts_str or "No bursts detected."
+    }
