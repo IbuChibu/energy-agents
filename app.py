@@ -35,13 +35,20 @@ def call_groq_llama_api(prompt: str) -> str:
 
 def main():
     st.title("Energy Agents AI Dashboard")
+    st.write("Select a system and deploy an AI agent.")
 
-    st.write("Welcome! Press the button to talk to AI.")
+    # System options
+    systems = ["Solar Site A", "Biogas Site B"]
+    selected_system = st.selectbox("Choose an energy system:", systems)
 
-    if st.button("Talk to AI"):
-        prompt = "Hello AI, show me the status of energy systems."
-        response = call_groq_llama_api(prompt)
-        st.write("AI says:", response)
+    # Optional: custom user query
+    user_query = st.text_area("Enter a question or command for the AI agent:", 
+                              f"Monitor and report on {selected_system}.")
+
+    if st.button("Run Agent"):
+        response = call_groq_llama_api(user_query)
+        st.subheader("AI Agent Response")
+        st.write(response)
 
 if __name__ == "__main__":
     main()
