@@ -58,13 +58,20 @@ def main():
         # Get metadata for this system
         metadata = system_metadata.get(system_id, {})
 
-        # Pass full df (not just recent rows) for context + user query
+        # Determine system type
         system_type = "biogas" if system_id == "B1" else "solar"
 
-        report = run_all_agents(df, selected_system, system_type, metadata, user_query)
+        # Run all agents and unpack their outputs
+        summary, alerts, recommendations = run_all_agents(df, selected_system, system_type, metadata, user_query)
 
-        st.subheader("AI Agent Report")
-        st.markdown(report)
+        st.subheader("Summary")
+        st.write(summary)
+
+        st.subheader("Alerts")
+        st.write(alerts)
+
+        st.subheader("Recommendations")
+        st.write(recommendations)
 
 if __name__ == "__main__":
     main()

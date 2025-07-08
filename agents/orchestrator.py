@@ -4,7 +4,7 @@ from agents.recommendation_agent import generate_recommendations
 from utils import compute_biogas_weekly_stats, compute_solar_weekly_stats
 import pandas as pd
 
-def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, metadata: dict, user_query: str) -> str:
+def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, metadata: dict, user_query: str):
     full_data["timestamp"] = pd.to_datetime(full_data["timestamp"], utc=True)
     last_24h = full_data[full_data["timestamp"] >= (full_data["timestamp"].max() - pd.Timedelta(hours=24))]
 
@@ -19,18 +19,8 @@ def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, 
     alerts = detect_alerts(last_24h, weekly_stats, system_name, metadata, user_query, system_type)
     recommendations = generate_recommendations(last_24h, weekly_stats, system_name, metadata, user_query, system_type)
 
-    return f"""
-### Agent Report for {system_name} ({system_type})
-
-**Summary:**
-{summary}
-
-**Alerts:**
-{alerts}
-
-**Recommendations:**
-{recommendations}
-"""
+    # Return separately
+    return summary, alerts, recommendations
 
 
 
