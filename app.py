@@ -1,8 +1,10 @@
 import streamlit as st
-import requests
-from dotenv import load_dotenv
 import os
 import pandas as pd
+from dotenv import load_dotenv
+
+# Import the orchestrator function that runs all agents
+from agents.orchestrator import run_all_agents
 
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -27,64 +29,6 @@ system_options = {
     "Biogas Site B": {"id": "B1", "data": biogas_data},
 }
 
-# Metadata for systems
-system_metadata = {
-    "S1": {
-        "location": "Nairobi, Kenya",
-        "system_type": "Solar PV (off-grid village)",
-        "panel_type": "Monocrystalline"
-    },
-    "B1": {
-        "location": "Kisumu, Kenya",
-        "system_type": "Fixed Dome Biogas",
-        "digester_capacity_m3": 15,
-        "use_case": "School biogas system near the stove"
-    }
-}
-
-# Column explanations
-column_explanations = {
-    "S1": """Solar telemetry columns:
-- bat_temp: battery temperature (°C)
-- state_of_charge: battery charge level (%)
-- bat_v: battery voltage (V)
-- load_w: power drawn by loads (W)
-- solar_w: solar power generation (W)
-- solar_v: solar panel voltage (V)
-""",
-    "B1": """Biogas telemetry columns:
-- flow: gas flow rate (L/min)
-- single_pressure: gas pressure near stove (Pa)
-- temperature: gas temperature (°C)
-- gas_consumption: total gas consumed (L)
-- gas_consumption_delta: change in gas consumption (L)
-"""
-}
-
-def call_groq_llama_api(prompt: str) -> str:
-    url = "https://api.groq.com/openai/v1/chat/completions"
-
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "llama3-8b-8192",
-        "messages": [
-            {"role": "system", "content": "You are a domain-aware autonomous energy monitoring assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.7
-    }
-
-    response = requests.post(url, headers=headers, json=data)
-
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    else:
-        return f"API call failed: {response.status_code} - {response.text}"
-
 def main():
     st.title("Energy Agents AI Dashboard")
     st.write("Select an energy system and ask questions about its telemetry.")
@@ -106,22 +50,20 @@ def main():
 
         # Dynamically select recent rows based on system type
         if system_info["id"] == "B1":
-            recent_rows = df.tail(120).to_dict(orient="records")  # Biogas: 2 hours (1-min intervals)
+            recent_rows = df.tail(120).to_dict(orient="records")  # Biogas: last 2 hours (1-min intervals)
+            system_type = "biogas"
         else:
-            recent_rows = df.tail(8).to_dict(orient="records")    # Solar: 2 hours (15-min intervals)
+            recent_rows = df.tail(8).to_dict(orient="records")    # Solar: last 2 hours (15-min intervals)
+            system_type = "solar"
 
-        system_prompt = (
-            f"You are an AI assistant monitoring {selected_system} (System ID: {system_info['id']}).\n\n"
-            f"Here are the latest telemetry records:\n{recent_rows}\n\n"
-            f"Please answer the user's question based on this data."
-        )
+        system_name = selected_system
 
-        full_prompt = f"{system_prompt}\n\nUser question: {user_query}"
+        # Add user query to prompt if needed inside the orchestrator or here
+        # For now, just run the agents on data
+        report = run_all_agents(recent_rows, system_name, system_type)
 
-        response = call_groq_llama_api(full_prompt)
-
-        st.subheader("AI Agent Response")
-        st.write(response)
+        st.subheader("AI Agent Report")
+        st.markdown(report)
 
 if __name__ == "__main__":
     main()
