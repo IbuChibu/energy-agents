@@ -51,3 +51,12 @@ def compute_biogas_weekly_stats(df):
         "total_gas_consumption_delta": df["gas_consumption_delta"].sum() if "gas_consumption_delta" in df.columns else None,
     }
     return stats
+
+def compute_solar_weekly_stats(df):
+    stats = {
+        "avg_bat_temp": df["bat_temp"].mean(),
+        "avg_state_of_charge": df["state_of_charge"].mean(),
+        "avg_load_w": df["load_w"].mean(),
+        "avg_solar_w": df["solar_w"].mean(),
+    }
+    return stats
