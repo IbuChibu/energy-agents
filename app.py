@@ -4,8 +4,7 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 
-load_dotenv()  # Load .env variables
-
+load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 print("Groq API key loaded:", GROQ_API_KEY is not None)
 
@@ -28,6 +27,40 @@ system_options = {
     "Biogas Site B": {"id": "B1", "data": biogas_data},
 }
 
+# Metadata for systems
+system_metadata = {
+    "S1": {
+        "location": "Nairobi, Kenya",
+        "system_type": "Solar PV (off-grid village)",
+        "panel_type": "Monocrystalline"
+    },
+    "B1": {
+        "location": "Kisumu, Kenya",
+        "system_type": "Fixed Dome Biogas",
+        "digester_capacity_m3": 15,
+        "use_case": "School biogas system near the stove"
+    }
+}
+
+# Column explanations
+column_explanations = {
+    "S1": """Solar telemetry columns:
+- bat_temp: battery temperature (°C)
+- state_of_charge: battery charge level (%)
+- bat_v: battery voltage (V)
+- load_w: power drawn by loads (W)
+- solar_w: solar power generation (W)
+- solar_v: solar panel voltage (V)
+""",
+    "B1": """Biogas telemetry columns:
+- flow: gas flow rate (L/min)
+- single_pressure: gas pressure near stove (Pa)
+- temperature: gas temperature (°C)
+- gas_consumption: total gas consumed (L)
+- gas_consumption_delta: change in gas consumption (L)
+"""
+}
+
 def call_groq_llama_api(prompt: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -39,7 +72,7 @@ def call_groq_llama_api(prompt: str) -> str:
     data = {
         "model": "llama3-8b-8192",
         "messages": [
-            {"role": "system", "content": "You are an energy monitoring assistant."},
+            {"role": "system", "content": "You are a domain-aware autonomous energy monitoring assistant."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7
@@ -71,12 +104,15 @@ def main():
             st.error(f"No telemetry data available for {selected_system}.")
             return
 
-        # Prepare latest telemetry snippet (last 5 rows)
-        latest_rows = df.tail(5).to_dict(orient="records")
+        # Dynamically select recent rows based on system type
+        if system_info["id"] == "B1":
+            recent_rows = df.tail(120).to_dict(orient="records")  # Biogas: 2 hours (1-min intervals)
+        else:
+            recent_rows = df.tail(8).to_dict(orient="records")    # Solar: 2 hours (15-min intervals)
 
         system_prompt = (
             f"You are an AI assistant monitoring {selected_system} (System ID: {system_info['id']}).\n\n"
-            f"Here are the latest telemetry records (last 5 rows):\n{latest_rows}\n\n"
+            f"Here are the latest telemetry records:\n{recent_rows}\n\n"
             f"Please answer the user's question based on this data."
         )
 
