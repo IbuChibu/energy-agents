@@ -2,8 +2,6 @@ import streamlit as st
 import os
 import pandas as pd
 from dotenv import load_dotenv
-
-# Import the orchestrator function that runs all agents
 from agents.orchestrator import run_all_agents
 
 load_dotenv()
@@ -22,6 +20,14 @@ try:
 except FileNotFoundError:
     biogas_data = pd.DataFrame()
     st.warning("Biogas telemetry data file not found.")
+
+# Load metadata dynamically
+try:
+    system_metadata_df = pd.read_csv("data/system_metadata.csv")
+    system_metadata = system_metadata_df.set_index('system_id').to_dict(orient='index')
+except FileNotFoundError:
+    system_metadata = {}
+    st.warning("System metadata file not found.")
 
 # Map system names to IDs and data
 system_options = {
@@ -42,25 +48,26 @@ def main():
 
     if st.button("Run Agent"):
         system_info = system_options[selected_system]
+        system_id = system_info["id"]
         df = system_info["data"]
 
         if df.empty:
             st.error(f"No telemetry data available for {selected_system}.")
             return
 
-        # Dynamically select recent rows based on system type
-        if system_info["id"] == "B1":
-            recent_rows = df.tail(120).to_dict(orient="records")  # Biogas: last 2 hours (1-min intervals)
+        # Get metadata for this system
+        metadata = system_metadata.get(system_id, {})
+
+        # Choose recent data window depending on system type (biogas or solar)
+        if system_id == "B1":
+            recent_rows = df.tail(120).to_dict(orient="records")  # 2 hours for 1-min intervals
             system_type = "biogas"
         else:
-            recent_rows = df.tail(8).to_dict(orient="records")    # Solar: last 2 hours (15-min intervals)
+            recent_rows = df.tail(8).to_dict(orient="records")    # 2 hours for 15-min intervals
             system_type = "solar"
 
-        system_name = selected_system
-
-        # Add user query to prompt if needed inside the orchestrator or here
-        # For now, just run the agents on data
-        report = run_all_agents(recent_rows, system_name, system_type)
+        # Pass metadata into your orchestrator or agents for context
+        report = run_all_agents(recent_rows, selected_system, system_type, metadata, user_query)
 
         st.subheader("AI Agent Report")
         st.markdown(report)
