@@ -29,9 +29,10 @@ def call_groq_llama_api(prompt: str) -> str:
         return response.json()["choices"][0]["message"]["content"]
     else:
         return f"API error: {response.status_code} - {response.text}"
-    
+
 def slice_last_24h(df, timestamp_col="timestamp"):
-    # Ensure timestamp col is datetime
+    if timestamp_col not in df.columns:
+        raise ValueError(f"Timestamp column '{timestamp_col}' not found in dataframe.")
     df[timestamp_col] = pd.to_datetime(df[timestamp_col], utc=True)
     last_timestamp = df[timestamp_col].max()
     start_time = last_timestamp - pd.Timedelta(hours=24)
@@ -39,11 +40,14 @@ def slice_last_24h(df, timestamp_col="timestamp"):
     return df_24h
 
 def compute_biogas_weekly_stats(df):
-    # Compute stats relevant for biogas telemetry
+    # Defensive numeric conversion
+    for col in ["flow", "single_pressure", "temperature", "gas_consumption_delta"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
     stats = {
-        "avg_flow": df["flow"].mean(),
-        "max_pressure": df["single_pressure"].max(),
-        "avg_temperature": df["temperature"].mean(),
-        "total_gas_consumption_delta": df["gas_consumption_delta"].sum(),
+        "avg_flow": df["flow"].mean() if "flow" in df.columns else None,
+        "max_pressure": df["single_pressure"].max() if "single_pressure" in df.columns else None,
+        "avg_temperature": df["temperature"].mean() if "temperature" in df.columns else None,
+        "total_gas_consumption_delta": df["gas_consumption_delta"].sum() if "gas_consumption_delta" in df.columns else None,
     }
     return stats

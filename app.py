@@ -58,16 +58,10 @@ def main():
         # Get metadata for this system
         metadata = system_metadata.get(system_id, {})
 
-        # Choose recent data window depending on system type (biogas or solar)
-        if system_id == "B1":
-            recent_rows = df.tail(120).to_dict(orient="records")  # 2 hours for 1-min intervals
-            system_type = "biogas"
-        else:
-            recent_rows = df.tail(8).to_dict(orient="records")    # 2 hours for 15-min intervals
-            system_type = "solar"
+        # Pass full df (not just recent rows) for context + user query
+        system_type = "biogas" if system_id == "B1" else "solar"
 
-        # Pass metadata into your orchestrator or agents for context
-        report = run_all_agents(recent_rows, selected_system, system_type, metadata, user_query)
+        report = run_all_agents(df, selected_system, system_type, metadata, user_query)
 
         st.subheader("AI Agent Report")
         st.markdown(report)

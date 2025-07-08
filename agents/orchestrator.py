@@ -4,7 +4,6 @@ from agents.recommendation_agent import generate_recommendations
 import pandas as pd
 
 def calculate_biogas_weekly_stats(df: pd.DataFrame) -> dict:
-    # Defensive: convert columns to numeric if not already
     df["flow"] = pd.to_numeric(df["flow"], errors="coerce")
     df["single_pressure"] = pd.to_numeric(df["single_pressure"], errors="coerce")
     df["temperature"] = pd.to_numeric(df["temperature"], errors="coerce")
@@ -18,20 +17,20 @@ def calculate_biogas_weekly_stats(df: pd.DataFrame) -> dict:
     }
     return stats
 
-def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, metadata: dict) -> str:
-    # Slice last 24 hours - assumes timestamp is sorted ascending
-    # Timestamp expected as ISO string, convert to datetime
+def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, metadata: dict, user_query: str) -> str:
     full_data["timestamp"] = pd.to_datetime(full_data["timestamp"], utc=True)
     last_24h = full_data[full_data["timestamp"] >= (full_data["timestamp"].max() - pd.Timedelta(hours=24))]
 
-    # Calculate weekly stats (currently only biogas, add solar logic later)
     weekly_stats = {}
     if system_type == "biogas":
         weekly_stats = calculate_biogas_weekly_stats(full_data)
+    elif system_type == "solar":
+        # You can add solar weekly stats calculation here
+        weekly_stats = {}
 
-    summary = analyze_telemetry(last_24h, system_name, system_type)
-    alerts = detect_alerts(last_24h, weekly_stats, system_name, metadata)
-    recommendations = generate_recommendations(last_24h, weekly_stats, system_name, metadata)
+    summary = analyze_telemetry(last_24h, weekly_stats, system_name, metadata, user_query)
+    alerts = detect_alerts(last_24h, weekly_stats, system_name, metadata, user_query)
+    recommendations = generate_recommendations(last_24h, weekly_stats, system_name, metadata, user_query)
 
     return f"""
 ### Agent Report for {system_name} ({system_type})
@@ -45,4 +44,6 @@ def run_all_agents(full_data: pd.DataFrame, system_name: str, system_type: str, 
 **Recommendations:**
 {recommendations}
 """
+
+
 
