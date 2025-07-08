@@ -2,12 +2,15 @@ import streamlit as st
 import requests
 from dotenv import load_dotenv
 import os
+import pandas as pd
 
 load_dotenv()  # Load .env variables
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 print("Groq API key loaded:", GROQ_API_KEY is not None)
+solar_data = pd.read_csv("data/solar_telemetry.csv")
+biogas_data = pd.read_csv("data/biogas_telemetry.csv")
 
 def call_groq_llama_api(prompt: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
