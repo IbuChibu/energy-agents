@@ -2,7 +2,7 @@ import requests
 import streamlit as st
 import pandas as pd
 
-GROQ_API_KEY = st.secrets("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 def call_groq_llama_api(prompt: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
