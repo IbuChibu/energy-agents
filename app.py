@@ -1,10 +1,8 @@
 import streamlit as st
 import os
 import pandas as pd
-from dotenv import load_dotenv
 from agents.orchestrator import run_all_agents
 
-load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 print("Groq API key loaded:", GROQ_API_KEY is not None)
 
