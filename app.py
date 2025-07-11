@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from agents.orchestrator import run_all_agents
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 print("Groq API key loaded:", GROQ_API_KEY is not None)
 
 # Load telemetry data safely
